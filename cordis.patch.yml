@@ -1,0 +1,3 @@
+- insert:
+    - id: session-reaper
+      name: '@Hector387420489/dsh-session-reaper'

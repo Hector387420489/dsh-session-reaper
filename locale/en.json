@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Delete session logs",
+    "description": "Adds “Delete session…” to the Session list's context menu. It removes that Session's persisted log from disk after a confirmation and drops its row immediately; it refuses Sessions that are still open.",
+    "detail": "docs/DETAIL.md"
+  }
+}
