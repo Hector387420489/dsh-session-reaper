@@ -65,6 +65,21 @@ async function readBody(request) {
 }
 
 /**
+ * Ask every activity provider whether the Session still has work in flight.
+ * @param ctx - Plugin context.
+ * @param sessionId - Candidate Session identity.
+ * @returns The reported activity items; empty when nothing is running.
+ */
+async function runningWork(ctx, sessionId) {
+  const reported = await ctx.parallel(
+    'workspace/session-activity',
+    { sessionId },
+    () => Promise.resolve([]),
+  )
+  return Array.isArray(reported) ? reported : []
+}
+
+/**
  * Delete one Session whose log this Host has persisted and that nothing is using.
  * @param ctx - Plugin context.
  * @param sessionId - Candidate Session identity.
@@ -73,9 +88,18 @@ async function readBody(request) {
 async function deleteSession(ctx, sessionId) {
   const live = ctx.get('sessions')
   if (live?.get(sessionId) !== undefined) {
-    return {
-      status: 409,
-      body: { ok: false, code: 'live', message: 'Session is open. Close its tab first, then delete it.' },
+    // An opened Session stays resident for the life of this process; only work
+    // still in flight makes deletion unsafe.
+    const activity = await runningWork(ctx, sessionId)
+    if (activity.length > 0) {
+      return {
+        status: 409,
+        body: {
+          ok: false,
+          code: 'running',
+          message: 'Session still has running work. Stop it (or close its tab) first, then delete it.',
+        },
+      }
     }
   }
 
